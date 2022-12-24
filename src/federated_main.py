@@ -29,8 +29,12 @@ if __name__ == '__main__':
     args = args_parser()
     exp_details(args)
 
-    if args.gpu_id:
-        torch.cuda.set_device(args.gpu_id)
+    try:
+        if args.gpu_id:
+            torch.cuda.set_device(args.gpu_id)
+    except:
+        print("cpu")
+
     device = 'cuda' if args.gpu else 'cpu'
 
     # load dataset and user groups
@@ -72,6 +76,7 @@ if __name__ == '__main__':
     print_every = 2
     val_loss_pre, counter = 0, 0
 
+    total_delay = 0.0
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
         print(f'\n | Global Training Round : {epoch+1} |\n')
@@ -79,15 +84,20 @@ if __name__ == '__main__':
         global_model.train()
         m = max(int(args.frac * args.num_users), 1)
         idxs_users = np.random.choice(range(args.num_users), m, replace=False)
-
+        delay_list: list[int] = []*len(args.num_users)
         for idx in idxs_users:
+            delay_time = np.random.randint(1, 10)
+            if delay_time >= 9:
+                continue
+            delay_list[idx] = delay_time
+
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch)
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
-
+        total_delay += max(delay_list)
         # update global weights
         global_weights = average_weights(local_weights)
 
@@ -113,6 +123,7 @@ if __name__ == '__main__':
             print(f' \nAvg Training Stats after {epoch+1} global rounds:')
             print(f'Training Loss : {np.mean(np.array(train_loss))}')
             print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
+            print(f'Total Delay: {total_delay}')
 
     # Test inference after completion of training
     test_acc, test_loss = test_inference(args, global_model, test_dataset)
@@ -120,7 +131,8 @@ if __name__ == '__main__':
     print(f' \n Results after {args.epochs} global rounds of training:')
     print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
-
+    print(f'Total Delay: {total_delay}')
+    
     # Saving the objects train_loss and train_accuracy:
     file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
         format(args.dataset, args.model, args.epochs, args.frac, args.iid,
@@ -132,26 +144,26 @@ if __name__ == '__main__':
     print('\n Total Run Time: {0:0.4f}'.format(time.time()-start_time))
 
     # PLOTTING (optional)
-    # import matplotlib
-    # import matplotlib.pyplot as plt
-    # matplotlib.use('Agg')
+    import matplotlib
+    import matplotlib.pyplot as plt
+    matplotlib.use('Agg')
 
     # Plot Loss curve
-    # plt.figure()
-    # plt.title('Training Loss vs Communication rounds')
-    # plt.plot(range(len(train_loss)), train_loss, color='r')
-    # plt.ylabel('Training loss')
-    # plt.xlabel('Communication Rounds')
-    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
-    #             format(args.dataset, args.model, args.epochs, args.frac,
-    #                    args.iid, args.local_ep, args.local_bs))
-    #
+    plt.figure()
+    plt.title('Training Loss vs Communication rounds')
+    plt.plot(range(len(train_loss)), train_loss, color='r')
+    plt.ylabel('Training loss')
+    plt.xlabel('Communication Rounds')
+    plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
+                format(args.dataset, args.model, args.epochs, args.frac,
+                       args.iid, args.local_ep, args.local_bs))
+
     # # Plot Average Accuracy vs Communication rounds
-    # plt.figure()
-    # plt.title('Average Accuracy vs Communication rounds')
-    # plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
-    # plt.ylabel('Average Accuracy')
-    # plt.xlabel('Communication Rounds')
-    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
-    #             format(args.dataset, args.model, args.epochs, args.frac,
-    #                    args.iid, args.local_ep, args.local_bs))
+    plt.figure()
+    plt.title('Average Accuracy vs Communication rounds')
+    plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
+    plt.ylabel('Average Accuracy')
+    plt.xlabel('Communication Rounds')
+    plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
+                format(args.dataset, args.model, args.epochs, args.frac,
+                       args.iid, args.local_ep, args.local_bs))
