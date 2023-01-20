@@ -1,5 +1,64 @@
 # Federated-Learning (PyTorch)
 
+## 考察
+no-iidの時, local_epを増やして局所最適解に落とした上でFedAvgをしたらglobalのlossは全然減らないのではないか.
+なお, MNISTのnon-iidではlabelごとにソートしてからclientに分配している
+#### 実験設定
+1. local_ep=20, iid=0, frac=0.03
+```
+ Results after 10 global rounds of training:
+|---- Avg Train Accuracy: 100.00%
+|---- Test Accuracy: 34.47%
+Total Delay: 67.0
+ Total Run Time: 440.8513
+```
+各々のclientに最適化され, 全体の精度が低いことがわかる.
+- local_ep=10, iid=0, frac=0.03
+local_epを小さくして過学習しないようにしてみる
+```
+
+```
+
+2. local_ep=20, iid=0, frac=0.1
+fracを増やしてより平均化してみる.
+```
+ Results after 10 global rounds of training:
+|---- Avg Train Accuracy: 98.33%
+|---- Test Accuracy: 81.86%
+Total Delay: 73.0
+
+ Total Run Time: 1660.9639
+```
+過学習が防げている
+
+3. local_ep=10, iid=0, frac=0.03で実験
+epochを減らしてclientを極小値に落とさない
+```
+ Results after 10 global rounds of training:
+|---- Avg Train Accuracy: 93.33%
+|---- Test Accuracy: 65.21%
+Total Delay: 70.0
+
+ Total Run Time: 254.0224
+(.venv)
+```
+計算コストが減っているにも関わらず, 1.より精度が良い.
+
+4. local_ep=5, iid=0, frac=0.03で実験
+3.からさらにepochを減らしてみる.
+```
+Results after 10 global rounds of training:
+|---- Avg Train Accuracy: 96.67%
+|---- Test Accuracy: 50.75%
+Total Delay: 57.0
+
+ Total Run Time: 169.5783
+```
+3.より精度が落ちてしまった.
+バランスが重要であることがわかる.
+
+----
+
 Implementation of the vanilla federated learning paper : [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629).
 
 
@@ -68,7 +127,7 @@ The default values for various paramters parsed to the experiment are given in `
 The experiment involves training a single model in the conventional way.
 
 Parameters: <br />
-* ```Optimizer:```    : SGD 
+* ```Optimizer:```    : SGD
 * ```Learning Rate:``` 0.01
 
 ```Table 1:``` Test accuracy after training for 10 epochs:
@@ -84,10 +143,10 @@ Parameters: <br />
 The experiment involves training a global model in the federated setting.
 
 Federated parameters (default values):
-* ```Fraction of users (C)```: 0.1 
-* ```Local Batch size  (B)```: 10 
-* ```Local Epochs      (E)```: 10 
-* ```Optimizer            ```: SGD 
+* ```Fraction of users (C)```: 0.1
+* ```Local Batch size  (B)```: 10
+* ```Local Epochs      (E)```: 10
+* ```Optimizer            ```: SGD
 * ```Learning Rate        ```: 0.01 <br />
 
 ```Table 2:``` Test accuracy after training for 10 global epochs with:
@@ -109,3 +168,5 @@ Federated parameters (default values):
 * [Leaf: A Benchmark for Federated Settings (CMU)](https://leaf.cmu.edu/)
 * [TensorFlow Federated](https://www.tensorflow.org/federated)
 * [Google AI Blog Post](https://ai.googleblog.com/2017/04/federated-learning-collaborative.html)
+
+

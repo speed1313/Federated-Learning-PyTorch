@@ -29,13 +29,13 @@ if __name__ == '__main__':
     args = args_parser()
     exp_details(args)
 
-    try:
-        if args.gpu_id:
-            torch.cuda.set_device(args.gpu_id)
-    except:
-        print("cpu")
+    #try:
+    #    if args.gpu_id:
+    #        torch.cuda.set_device(args.gpu_id)
+    #except:
+    #    print("cpu")
 
-    device = 'cuda' if args.gpu else 'cpu'
+    device  = 'cpu'
 
     # load dataset and user groups
     train_dataset, test_dataset, user_groups = get_dataset(args)
@@ -135,9 +135,9 @@ if __name__ == '__main__':
 
     # Saving the objects train_loss and train_accuracy:
     parent = Path(__file__).resolve().parent.parent
-    file_name = parent.joinpath('save/objects/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
+    file_name = parent.joinpath('save/objects/fed_{}_{}_{}_C[{}]_iid[{}]_bal[{}]_E[{}]_B[{}].pkl'.\
         format(args.dataset, args.model, args.epochs, args.frac, args.iid,
-               args.local_ep, args.local_bs))
+               args.local_ep, args.local_bs, args.unequal))
 
     with open(file_name, 'wb') as f:
         pickle.dump([train_loss, train_accuracy], f)
